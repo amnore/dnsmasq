@@ -539,7 +539,7 @@ static int find_soa(struct dns_header *header, size_t qlen, char *name, int *doc
    expired and cleaned out that way. 
    Return 1 if we reject an address because it look like part of dns-rebinding attack. */
 int extract_addresses(struct dns_header *header, size_t qlen, char *name, time_t now, 
-		      char **ipsets, int is_sign, int check_rebind, int no_cache_dnssec,
+		      char **ipsets, char **nftsets, int is_sign, int check_rebind, int no_cache_dnssec,
 		      int secure, int *doctored)
 {
   unsigned char *p, *p1, *endrr, *namep;
@@ -550,6 +550,11 @@ int extract_addresses(struct dns_header *header, size_t qlen, char *name, time_t
   char **ipsets_cur;
 #else
   (void)ipsets; /* unused */
+#endif
+#ifdef HAVE_NFTSET
+  char **nftsets_cur;
+#else
+  (void)nftsets; /* unused */
 #endif
 
   
@@ -817,6 +822,18 @@ int extract_addresses(struct dns_header *header, size_t qlen, char *name, time_t
 				{
 				  log_query((flags & (F_IPV4 | F_IPV6)) | F_IPSET, name, &addr, *ipsets_cur);
 				  add_to_ipset(*ipsets_cur++, &addr, flags, 0);
+				}
+			    }
+#endif
+
+#ifdef HAVE_NFTSET
+			  if (nftsets && (flags & (F_IPV4 | F_IPV6)))
+			    {
+			      nftsets_cur = nftsets;
+			      while (*nftsets_cur)
+				{
+				  log_query((flags & (F_IPV4 | F_IPV6)) | F_NFTSET, name, &addr, *nftsets_cur);
+				  add_to_nftset(*nftsets_cur++, &addr, flags, 0);
 				}
 			    }
 #endif
